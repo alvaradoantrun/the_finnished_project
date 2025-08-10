@@ -6,12 +6,21 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read   # <-- lets us pull images from ghcr.io
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/zmkfirmware/zmk-build-arm:stable
     steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Checkout ZMK (upstream)
         uses: actions/checkout@v4
         with:
@@ -24,25 +33,26 @@ jobs:
         with:
           path: config
 
-      - name: Initialize West
-        run: west init -l config
+      - name: Set up container
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ghcr.io/zmkfirmware/zmk-build-arm:stable
+          options: -v ${{ github.workspace }}:/work
+          run: |
+            set -eux
+            cd /work
+            west init -l config
+            west update
+            west zephyr-export
 
-      - name: Update West modules
-        run: west update
+            # Left
+            west build -s zmk/app -b nice_nano_v2 -- -DSHIELD=my_split_left -DZMK_CONFIG="/work/config"
+            cp build/zephyr/zmk.uf2 my_split_left-nice_nano_v2.uf2
+            rm -rf build
 
-      - name: Export Zephyr
-        run: west zephyr-export
-
-      - name: Build left (nice_nano_v2@my_split_left)
-        run: |
-          west build -s zmk/app -b nice_nano_v2 -- -DSHIELD=my_split_left -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
-          mv build/zephyr/zmk.uf2 my_split_left-nice_nano_v2.uf2
-          rm -rf build
-
-      - name: Build right (nice_nano_v2@my_split_right)
-        run: |
-          west build -s zmk/app -b nice_nano_v2 -- -DSHIELD=my_split_right -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
-          mv build/zephyr/zmk.uf2 my_split_right-nice_nano_v2.uf2
+            # Right
+            west build -s zmk/app -b nice_nano_v2 -- -DSHIELD=my_split_right -DZMK_CONFIG="/work/config"
+            cp build/zephyr/zmk.uf2 my_split_right-nice_nano_v2.uf2
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
