@@ -1,0 +1,53 @@
+name: Build ZMK firmware
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: zmkfirmware/zmk-build-arm:3.4
+    steps:
+      - name: Checkout ZMK (upstream)
+        uses: actions/checkout@v4
+        with:
+          repository: zmkfirmware/zmk
+          path: zmk
+          submodules: recursive
+
+      - name: Checkout your config
+        uses: actions/checkout@v4
+        with:
+          path: config
+
+      - name: Initialize West
+        run: west init -l config
+
+      - name: Update West modules
+        run: west update
+
+      - name: Export Zephyr
+        run: west zephyr-export
+
+      - name: Build left (nice_nano_v2@my_split_left)
+        run: |
+          west build -s zmk/app -b nice_nano_v2 -- -DSHIELD=my_split_left -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+          mv build/zephyr/zmk.uf2 my_split_left-nice_nano_v2.uf2
+          rm -rf build
+
+      - name: Build right (nice_nano_v2@my_split_right)
+        run: |
+          west build -s zmk/app -b nice_nano_v2 -- -DSHIELD=my_split_right -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+          mv build/zephyr/zmk.uf2 my_split_right-nice_nano_v2.uf2
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            my_split_left-nice_nano_v2.uf2
+            my_split_right-nice_nano_v2.uf2
