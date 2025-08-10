@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: zmkfirmware/zmk-build-arm:3.4
+      image: ghcr.io/zmkfirmware/zmk-build-arm:stable
     steps:
       - name: Checkout ZMK (upstream)
         uses: actions/checkout@v4
@@ -51,3 +51,4 @@ jobs:
           path: |
             my_split_left-nice_nano_v2.uf2
             my_split_right-nice_nano_v2.uf2
+
