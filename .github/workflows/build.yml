@@ -16,18 +16,18 @@ jobs:
           path: config
 
       - name: Build LEFT
-        uses: zmkfirmware/zmk-build-action@v1
+        uses: zmkfirmware/zmk-build@v1
         with:
           board: nice_nano_v2
           shield: my_split_left
-          config_path: config
-          archive_name: my_split_left-nice_nano_v2
+          config-path: config
+          archive-name: my_split_left-nice_nano_v2
 
       - name: Build RIGHT
-        uses: zmkfirmware/zmk-build-action@v1
+        uses: zmkfirmware/zmk-build@v1
         with:
           board: nice_nano_v2
           shield: my_split_right
-          config_path: config
-          archive_name: my_split_right-nice_nano_v2
+          config-path: config
+          archive-name: my_split_right-nice_nano_v2
 
